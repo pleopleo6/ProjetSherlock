@@ -1,0 +1,5 @@
+certifi>=2025.1.31
+exifread>=3.5.1
+folium>=0.20.0
+lxml>=5.3.1
+pyside6>=6.10.2

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<suspects>
+  <suspect>
+    <name>Miles Bron</name>
+    <sources>
+      <source>
+        <type>Photographs</type>
+        <dir>../data/pics/mbron</dir>
+      </source>
+      <source>
+        <type>Wi-Fi</type>
+        <db>../data/db/wifi.db</db>
+        <username>mbron</username>
+      </source>
+    </sources>
+  </suspect>
+  <suspect>
+    <name>Lionel Toussaint</name>
+    <sources>
+      <source>
+        <type>Logs</type>
+        <file>../data/logs/ltoussaint.log</file>
+      </source>
+      <source>
+        <type>Wi-Fi</type>
+        <db>../data/db/wifi.db</db>
+        <username>ltoussaint</username>
+      </source>
+    </sources>
+  </suspect>
+  <suspect>
+    <name>Claire Debella</name>
+    <sources>
+      <source>
+        <type>Photographs</type>
+        <dir>../data/pics/cdebella</dir>
+      </source>
+      <source>
+        <type>Logs</type>
+        <file>../data/logs/cdebella.log</file>
+      </source>
+    </sources>
+  </suspect>
+  <suspect>
+    <name>Birdie Jay</name>
+    <sources>
+      <source>
+        <type>Photographs</type>
+        <dir>../data/pics/bjay</dir>
+      </source>
+      <source>
+        <type>Logs</type>
+        <file>../data/logs/bjay.log</file>
+      </source>
+    </sources>
+  </suspect>
+  <suspect>
+    <name>Duke Cody</name>
+    <sources>
+      <source>
+        <type>Photographs</type>
+        <dir>../data/pics/dcody</dir>
+      </source>
+      <source>
+        <type>Wi-Fi</type>
+        <db>../data/db/wifi.db</db>
+        <username>dcody</username>
+      </source>
+    </sources>
+  </suspect>
+  <suspect>
+    <name>Helen Brand</name>
+    <sources>
+      <source>
+        <type>Photographs</type>
+        <dir>../data/pics/hbrand</dir>
+      </source>
+      <source>
+        <type>Logs</type>
+        <file>../data/logs/hbrand.log</file>
+      </source>
+      <source>
+        <type>Wi-Fi</type>
+        <db>../data/db/wifi.db</db>
+        <username>hbrand</username>
+      </source>
+    </sources>
+  </suspect>
+</suspects>

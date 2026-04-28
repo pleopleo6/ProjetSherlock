@@ -1,0 +1,7 @@
+[2026-03-17T15:45:24.000] Location request from facebook returned coordinates: ('46.513265081885876', '6.574699686041158'), source: wi-fi
+[2026-03-17T15:45:54.000] Location request from facebook returned coordinates: (46.52605397098049, 6.57306298777348), source: wi-fi
+[2026-03-17T15:46:24.000] Location request from netflix, returned coordinates: (46.521801, 6.5812008), source: GPS
+[2026-03-17T15:46:54.000] Location request from twitter returned coordinates: ('46.51385515021663', '6.588188471467084'), source: UNKNOWN
+[2026-03-17T15:47:24.000] Location request from instagram returned coordinates: (46.51663645322289, 6.574217497759164), source: cellular
+[2026-03-17T15:47:54.000] Location request from tiktok returned coordinates: ('46.51682665193949', '6.572685575874027'), source: UNKNOWN
+[2026-03-17T15:48:24.000] Location request from snapchat returned coordinates: ('46.51243498955926', '6.587482064761012'), source: UNKNOWN

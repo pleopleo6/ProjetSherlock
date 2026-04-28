@@ -1,0 +1,90 @@
+{
+    "suspects": [
+        {
+            "name": "Miles Bron",
+            "sources": [
+                {
+                    "type": "Photographs",
+                    "dir": "../data/pics/mbron"
+                },
+                {
+                    "type": "Wi-Fi",
+                    "db": "../data/db/wifi.db",
+                    "username": "mbron"
+                }
+            ]
+        },
+        {
+            "name": "Lionel Toussaint",
+            "sources": [
+                {
+                    "type": "Logs",
+                    "file": "../data/logs/ltoussaint.log"
+                },
+                {
+                    "type": "Wi-Fi",
+                    "db": "../data/db/wifi.db",
+                    "username": "ltoussaint"
+                }
+            ]
+        },
+        {
+            "name": "Claire Debella",
+            "sources": [
+                {
+                    "type": "Photographs",
+                    "dir": "../data/pics/cdebella"
+                },
+                {
+                    "type": "Logs",
+                    "file": "../data/logs/cdebella.log"
+                }
+            ]
+        },
+        {
+            "name": "Birdie Jay",
+            "sources": [
+                {
+                    "type": "Photographs",
+                    "dir": "../data/pics/bjay"
+                },
+                {
+                    "type": "Logs",
+                    "file": "../data/logs/bjay.log"
+                }
+            ]
+        },
+        {
+            "name": "Duke Cody",
+            "sources": [
+                {
+                    "type": "Photographs",
+                    "dir": "../data/pics/dcody"
+                },
+                {
+                    "type": "Wi-Fi",
+                    "db": "../data/db/wifi.db",
+                    "username": "dcody"
+                }
+            ]
+        },
+        {
+            "name": "Helen Brand",
+            "sources": [
+                {
+                    "type": "Photographs",
+                    "dir": "../data/pics/hbrand"
+                },
+                {
+                    "type": "Logs",
+                    "file": "../data/logs/hbrand.log"
+                },
+                {
+                    "type": "Wi-Fi",
+                    "db": "../data/db/wifi.db",
+                    "username": "hbrand"
+                }
+            ]
+        }
+    ]
+}
