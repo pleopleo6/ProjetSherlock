@@ -26,7 +26,11 @@ except ImportError:
 
 # TODO: Définir la classe PictureLocationProvider qui désigne des objets
 #       LocationProvider obtenus à partir d'images.
-class PictureLocationProvider:
+class PictureLocationProvider(ListLocationProvider):
+    # TODO: Définir les extensions valides et un getter pour y accéder.
+    # Attribut de classe : les extensions de fichiers acceptées (tuple = non modifiable)
+    fichier_accepte = (".JPG", ".JPEG", ".jpg", ".jpeg")
+
     # TODO: Implémenter le constructeur.
     def __init__(self, directory: str) -> None:
         self.__dir: Path = Path(directory)
@@ -40,15 +44,51 @@ class PictureLocationProvider:
         #       et extraire un objet LocationSample pour les photos ayant une
         #       extension valide (et qui contiennent des informations de
         #       localisation).
+        for fichier in self.__dir.iterdir():
+            extension = fichier.suffix
 
-    # TODO: Définir les extensions valides et un getter pour y accéder.
-    def get_valid_extensions() -> tuple[str, ...]: ...
+            if extension in self.fichier_accepte == False:
+                continue
+
+            informations = PictureLocationProvider._extract_location_sample_from_picture(fichier)
+
+            date = informations[0]
+            lat = informations[1]
+            lng = informations[2]
+
+            manque_date = date is None
+            mauque_lat = lat is None
+            manque_long = lng is None
+
+            if manque_date or mauque_lat or manque_long:
+
+                configuration = Configuration.get_instance()
+                verbose = configuration.get_element("verbose")
+
+                if verbose:
+                    nom_fichier = fichier.name
+                    print(f"fichier ignoré :'{nom_fichier}'")
+
+                continue
+
+            lieu = Location(lat, lng)
+            chemin_fichier = str(fichier)
+            sample = LocationSample(date, lieu, chemin_fichier)
+            samples.append(sample)
+
+        super().__init__(samples)
+
+    def get_validfichier_accepte(self) -> tuple[str, ...]:
+        return self.fichier_accepte
 
     # TODO: Redéfinir la méthode __str__ pour afficher les objets sous la forme
     #       suivante :
     # PictureLocationProvider (source: '../ data/pics /jdoe’ (JPG,JPEG,jpg,jpeg), 2 location samples)
     @override
-    def __str__() -> str: ...
+    def __str__(self) -> str:
+        nb = len(self.get_location_samples())
+        extensions = ",".join(self.fichier_accepte)
+        return f"PictureLocationProvider (source: '{self.__dir}' ({extensions}), {nb} location samples)"
 
     @staticmethod
     def _convert_to_degrees(value: IfdTag) -> float:
@@ -113,6 +153,21 @@ class PictureLocationProvider:
 
             # TODO: Convertir la date (au format textuel) contenue dans le EXIF
             #       tag en datetime et le stocker dans la variable t.
+            # date.values  ressemble à "2026:03:17"  (chaîne)
+            # timestamp.values  ressemble à [13, 52, 46]  (heure, minutes, secondes)
+            if date is not None and timestamp is not None:
+                time = timestamp.values
+
+                heures = time[0]
+                minutes = time[1]
+                secondes = time[2]
+
+                date_complete = f"{date.values} {heures}:{minutes}:{secondes}"
+                t = datetime.strptime(date_complete, "%Y:%m:%d %H:%M:%S")
+
+                # La date EXIF est en UTC
+                t = t.replace(tzinfo=UTC)
+               
 
         return t, lat, lng
 

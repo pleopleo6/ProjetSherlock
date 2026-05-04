@@ -16,33 +16,32 @@ __copyright__ = "Copyright (c) 2026, The Information Security and Privacy Lab at
 # TODO: Utiliser le patron de conception Singleton pour cette classe, pour
 #       manipuler la configuration de manière globale dans tout le programme.
 class Configuration:
-
-    _instance = None #singleton
-    _dico: dict = {}
+    instance = None #singleton
+    dico: dict = {}
 
     def __init__(self):
-        self._dico = {}
+        self.dico = {}
 
     @classmethod
-    def get_instance(configuration):
-        if configuration._instance == None:
-            configuration._instance = Configuration()
-        return configuration._instance
+    def getinstance(configuration):
+        if configuration.instance == None:
+            configuration.instance = Configuration()
+        return configuration.instance
 
     def add_element(self, cle, valeur):
-        self._dico[cle] = valeur
+        self.dico[cle] = valeur
 
     def get_element(self, cle, autreArgument=None): #pas sur de comment faire 
-        if cle in self._dico:
-            return self._dico[cle]
+        if cle in self.dico:
+            return self.dico[cle]
         return autreArgument
 
     def __str__(self):
-        return str(self._dico)
+        return str(self.dico)
 
 
 if __name__ == "__main__":
-    conf = Configuration.get_instance()
+    conf = Configuration.getinstance()
 
     conf.add_element('verbose', True)
     conf.add_element('N', 6)
@@ -51,7 +50,7 @@ if __name__ == "__main__":
     max = conf.get_element('max', 42) #pas compris les 2 arguments ? valeur défaut ?
     print(max, conf.get_element('max'), conf.get_element('verbose'))
 
-    print(conf == Configuration.get_instance())
+    print(conf == Configuration.getinstance())
 
     ### Résultat attendu ###
     # {'verbose': True, 'N': 6}
