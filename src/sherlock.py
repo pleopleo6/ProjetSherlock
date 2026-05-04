@@ -33,6 +33,44 @@ if __name__ == "__main__":
     # TODO: Ajouter les différents arguments de la ligne de commande à
     #       l'analyseur "parser".
 
+    # parser.add_argument( #marche pas
+    #     "-h", "--help",
+    #     action="store_true",
+    #     help="show this help message and exit",
+    # )
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="affiche les détails de l'exécution du programme et les avertissements.",
+    )
+    parser.add_argument(
+        "-s", "--suspects",
+        required=True,
+        help="fichier contenant la liste des suspect.e.s et les sources de données de localisation.",
+    )
+    parser.add_argument(
+        "-g", "--geo-api-key",
+        required=True,
+        help="clé pour l'accès à l'API du SIG.",
+    )
+    parser.add_argument(
+        "-lat", "--latitude",
+        required=True,
+        type=float,
+        help="latitude de la scène du crime.",
+    )
+    parser.add_argument(
+        "-lng", "--longitude",
+        required=True,
+        type=float,
+        help="longitude de la scène du crime.",
+    )
+    parser.add_argument(
+        "-d", "--date",
+        required=True,
+        help="date et heure du crime (au format JJ/MM/AAAA-hh:mm, par exemple 17/03/2026-15:52:31).",
+    )
+
     args = parser.parse_args()
 
     # TODO: Stocker les paramètres importants dans un objet Configuration
