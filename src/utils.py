@@ -10,8 +10,16 @@ __copyright__ = "Copyright (c) 2026, The Information Security and Privacy Lab at
 # TODO: Implémenter une fonction indent qui prend en paramètre un texte (sous
 #       forme de chaîne de caractère) et un espacement (par défaut '\t') et qui
 #       ajoute l'espacement au début de chaque ligne du texte.
-def indent() -> str:
-    ...
+def indent(texte, espacement="\t"):
+    lignes = texte.split("\n")
+    texte2 = []
+
+    for ligne in lignes:
+        nouvelle_ligne = espacement + ligne
+        texte2.append(nouvelle_ligne)
+        
+    return "\n".join(texte2)
+
 
 
 if __name__ == "__main__":
