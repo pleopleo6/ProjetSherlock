@@ -40,8 +40,8 @@ class Suspect:
 
     # TODO: Implémenter le constructeur et les getters
     def __init__(self, nom, lp):
-        self.__nom = nom   # le nom du suspect
-        self.__lp = lp     # son LocationProvider
+        self.__nom = nom  
+        self.__lp = lp     
 
     def get_name(self):
         return self.__nom

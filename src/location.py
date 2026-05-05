@@ -126,54 +126,129 @@ class GoogleMapsApiAdapter(MapsApiAdapter):
 class Location:
 
     # TODO: Implémenter le constructeur et les getters.
-    def __init__() -> None: ...
+    def _init_(self, latitude, longitude):
+        self.__latitude= float(latitude)
+        self.__longitude= float(longitude)
+        #_api_adapter: MapsApiAdapter | None -> pas dans le schéma (argument)
+        self.__api_adapter = None
 
     # TODO: Implémenter la méthode __str__ pour afficher une Location de la
     #       forme suivante (en limitant le nombre de décimales à 5).
     # Location [latitude: 48.85479, longitude: 2.34756]
     @override
-    def __str__() -> str: ...
+    def _str_(self):
+        return f"Location (latitude : {self._latitude}, longitude : {self._longitude})."
 
     __repr__ = __str__
 
-    def get_latitude() -> float: ...
+    def _check_adapter_init():
+        if self.__api_adapter is None:
+            raise ValueError("API pas initialisé")
 
-    def get_longitude() -> float: ...
+    def set_maps_adapter(self, MapsApiAdapter):
+        self.__api_adapter = float(MapsApiAdapter)
+
+    def get_latitude(self):
+        return self.__latitude
+
+    def get_longitude(self):
+        return self.__longitude
 
     # TODO: Définir une méthode get_name(self) -> str qui retourne, en utilisant 
     #       GoogleMapsApiAdapter qui envoie une requête API de reverse geocoding, le nom
     #       correspondant aux coordonnées contenues dans l'objet Location.
     # "Avenue de la Gare 46, 1003 Lausanne, Suisse" pour 46.517738, 6.632233
-    def get_name() -> str: ...
+    def get_name(): 
+        return "à faire après"
 
     # TODO: Implémenter la méthode get_travel_distance_and_time qui renvoie le
     #       couple (distance, temps) pour atteindre le lieu correspondant à un
     #       autre objet Location, en utilisant GoogleMapsApiAdapter qui envoie 
     #       requête HTTP urllib vers un service d'itinéraires.
-    def get_travel_distance_and_time() -> tuple[int, timedelta]: ...
+    def get_travel_distance_and_time(self, other) -> tuple[int, timedelta]:
+        
+        # A FAIRE APRES AVEC API
+        
+        r: int = 6371  
+
+        lat1 = math.radians(self.__latitude)
+        lon1 = math.radians(self.__longitude)
+
+        lat2 = math.radians(other.__latitude)
+        lon2 = math.radians(other.__longitude)
+
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+
+        a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+        c = 2 * math.asin(math.sqrt(a))
+
+        distance = int(r * c)
+
+        vitesse_moyenne = 50  # km/h
+        temps_heures = distance / vitesse_moyenne
+        temps = timedelta(hours=temps_heures)
+
+        return distance, temps
+
+    # TP : à utiliser ? 
+    def verif_lat(self):
+        if self._latitude <-90 or self._latitude >90:
+            raise ValueError("La réduction doit être comprise entre -90 et 90 !")
+    
+    def verif_long(self):
+        if self._longitude <-180 or self._longitude >180:
+            raise ValueError("La réduction doit être comprise entre -180 et 180 !")
 
 
 # TODO: Définir la classe LocationSample désignant des objets contenant un
 #       datetime et un objet Location.
 class LocationSample:
     # TODO: Implémenter le constructeur.
-    def __init__() -> None: ...
+    def _init_(self, date, location):
+        self.__date = date
+        self.__location = location
+        
+        if not isinstance(date, int):
+            raise ValueError("La date doit être un entier !")
+        if not isinstance(location, Location):
+            raise ValueError("location doit être une instance de Location !")
 
     # TODO: Implémenter les getters.
-    def get_location() -> Location: ...
+    def get_location() -> Location: 
+        return self.__location
 
-    def get_date() -> datetime: ...
+    def get_date(self) -> datetime:
+        return datetime.strptime(self.__date, "%d/%m/%Y-%H:%M:%S")
 
     def get_description() -> str: ...
 
     # TODO: Implémenter la méthode __str__ pour afficher une LocationSample de la façon suivante:
     #       LocationSample [datetime: 2024-04-03 12:25:00, location: Location [latitude: 48.85479, longitude: 2.34756]]
     @override
-    def __str__() -> str: ...
+    def _str_(self):
+        return f"LocationSample [timestamp : {self._date}, location : {self._location}]"
 
     __repr__ = __str__
 
-    # TODO: Définir les opérateurs de comparaison.
+    # TODO: Définir les opérateurs de comparaison. TOUS ? 
+    def __lt__(self, autre):
+        return self.__date < autre.__date
+
+    def __le__(self, autre):
+        return self.__date <= autre.__date
+
+    def __gt__(self, autre):
+        return self.__date > autre.__date
+
+    def __ge__(self, autre):
+        return self.__date >= autre.__date
+
+    def __eq__(self, autre):
+        return self.__date == autre.__date
+
+    def __ne__(self, autre):
+        return self.__date != autre.__date
 
 
 # TODO: Définir la classe abstraite LocationProvider qui permet de produire une
