@@ -28,29 +28,29 @@ class Configuration:
             configuration.instance = Configuration()
         return configuration.instance
 
-    def add_element(self, cle, valeur):
-        self.dico[cle] = valeur
+    def add_element(self, key, value):
+        self.dico[key] = value
 
-    def get_element(self, cle, autreArgument=None): #pas sur de comment faire 
-        if cle in self.dico:
-            return self.dico[cle]
-        return autreArgument
+    def get_element(self, key, default=None):
+        if key in self.dico:
+            return self.dico[key]
+        return default
 
     def __str__(self):
         return str(self.dico)
 
 
 if __name__ == "__main__":
-    conf = Configuration.getinstance()
+    conf = Configuration.get_instance()
 
     conf.add_element('verbose', True)
     conf.add_element('N', 6)
     print(conf)
 
-    max = conf.get_element('max', 42) #pas compris les 2 arguments ? valeur défaut ?
+    max = conf.get_element('max', 42)
     print(max, conf.get_element('max'), conf.get_element('verbose'))
 
-    print(conf == Configuration.getinstance())
+    print(conf == Configuration.get_instance())
 
     ### Résultat attendu ###
     # {'verbose': True, 'N': 6}

@@ -89,11 +89,34 @@ if __name__ == "__main__":
     configurationClasse.add_element("crime_date", date_crime)
 
     # TODO: Afficher le message d'accueil du logiciel.
+    try:
+        from src.location import GoogleMapsApiAdapter
+    except ImportError:
+        from location import GoogleMapsApiAdapter
+    Location.set_maps_adapter(GoogleMapsApiAdapter(args.geo_api_key))
+    crime_location = Location(args.latitude, args.longitude)
+    print(
+        f"Investigation liée au crime du {date_crime.strftime('%d/%m/%Y à %H:%M:%S')} @ "
+        f"{crime_location.get_name()} ({crime_location.get_latitude():.5f},{crime_location.get_longitude():.5f})"
+    )
 
     # TODO: Lire le fichier suspect, l'analyser, construire les objets Suspect
     #       correspondants et les stocker dans une liste. Utiliser les méthodes
     #       createObjectFromXMLFile() / createObjectFromJSONFile().
     # Créer un objet Location décrivant le lieu du crime à partir de ses coordonnées (obtenues depuis la ligne de commande)
+    if args.suspects.endswith(".json"):
+        suspects = Suspect.create_suspects_from_json_file(args.suspects)
+    else:
+        suspects = Suspect.create_suspects_from_xml_file(args.suspects)
+    crime_sample = LocationSample(
+        date_crime.replace(tzinfo=timezone(timedelta(hours=2))),
+        crime_location,
+        "Lieu du crime",
+    )
 
     # TODO: Pour chaque suspect, déterminer s'il a pu se rendre et repartir du
     #       lieu du crime.
+    print("\nSuspects plausibles :")
+    for s in suspects:
+        if s.get_location_provider().could_have_been_there(crime_sample):
+            print(f" - {s.get_name()}")

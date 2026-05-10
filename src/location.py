@@ -62,36 +62,52 @@ def _build_ssl_context() -> ssl.SSLContext:
 
 SSL_CONTEXT = _build_ssl_context()
 
-class MapsApiAdapter: # TODO: déclarer cette classe comme abstraite
+import json
+class MapsApiAdapter(ABC):
     """Adapter interface for map-related API operations."""
 
-    # TODO: Déclarer une méthode get_place_name 
+    # TODO: Déclarer une méthode get_place_name
     # Déclarer cette méthode comme abstraite et définir sa signature.
-    # Elle doit accepter en paramètre une latitude et une longitude (flottants)
-    # et retourner un nom de lieu lisible par un humain (str).
+    @abstractmethod
+    def get_place_name(self, latitude: float, longitude: float) -> str:
+        pass
 
     # TODO: Déclarer une méthode get_travel_distance_and_time
     # Déclarer cette méthode comme abstraite et définir sa signature.
-    # Elle doit accepter en paramètre une origine et une destination (tuples de flottants)
-    # ainsi qu'un mode de transport (str, "walking" par défaut),
-    # et renvoyer un tuple contenant la distance en mètres (int)
-    # et la durée du trajet (timedelta).
-    
+    @abstractmethod
+    def get_travel_distance_and_time(
+        self,
+        origin: tuple[float, float],
+        destination: tuple[float, float],
+        mode: str = "walking",
+    ) -> tuple[int, timedelta]:
+        pass
+
 
 class GoogleMapsApiAdapter(MapsApiAdapter):
-    """Google Maps implementation of the map API adapter."""
+    _BASE_URL = "https://maps.googleapis.com/maps/api"
 
     def __init__(self, api_key: str) -> None:
-        ...
+        self._api_key = api_key
 
     # TODO: Implémenter une méthode d'instance permettant de vérifier si une clé API GoogleMaps existe
     def _check_api_key(self) -> None:
-        ...
         if not self._api_key:
             raise ValueError("Google Maps API key is not set.")
 
+    def set_api_key(self, api_key: str) -> None:
+        self._api_key = api_key
+
     def _request_json(self, endpoint: str, params: dict[str, str]) -> dict:
-        ...
+        params_complets = dict(params)
+        params_complets["key"] = self._api_key
+        url = f"{self._BASE_URL}/{endpoint}/json?{urlencode(params_complets)}"
+
+        reponse = urlopen(url, context=SSL_CONTEXT)
+
+        contenu = reponse.read().decode("utf-8")
+        donnees = json.loads(contenu)
+        return donnees
 
     @override
     def get_place_name(self, latitude: float, longitude: float) -> str:
@@ -103,7 +119,28 @@ class GoogleMapsApiAdapter(MapsApiAdapter):
         #   utiliser le deuxième résultat à la place.
         # - En cas d'erreur, renvoyer la chaîne "unknown"
         #   (et affichez un avertissement sur stderr si le mode verbose est activé).
-        ...
+        # doc : https://developers.google.com/maps/documentation/geocoding/requests-reverse-geocoding
+        try:
+            params = {
+                "latlng": f"{latitude},{longitude}",
+                "language": "fr-FR",
+            }
+            donnees = self._request_json("geocode", params)
+
+            if donnees.get("status") != "OK":
+                raise RuntimeError(donnees.get("error_message", donnees.get("status")))
+
+            results = donnees["results"]
+            premier = results[0]
+
+            if premier["address_components"][0]["types"][0] == "plus_code":
+                premier = results[1]
+            return premier["formatted_address"]
+
+        except Exception as erreur:
+            if Configuration.get_instance().get_element("verbose"):
+                print(f"Attention: erreur API Geocoding ({erreur})", file=sys.stderr)
+            return "unknown"
 
     @override
     def get_travel_distance_and_time(
@@ -119,34 +156,83 @@ class GoogleMapsApiAdapter(MapsApiAdapter):
         # - Extraire la distance (en mètres, int) et la durée (en secondes,
         #   à convertir en timedelta) depuis la réponse.
         # - Renvoyer un tuple (distance, durée).
-        ...
+        # doc : https://developers.google.com/maps/documentation/distance-matrix/distance-matrix
+       
+        params = {
+            "origins": f"{origin[0]},{origin[1]}",
+            "destinations": f"{destination[0]},{destination[1]}",
+            "mode": mode,
+            "units": "metric",
+            "language": "fr-FR",
+        }
+
+        donnees = self._request_json("distancematrix", params)
+
+        # On vérifie le status global de la réponse (cf. doc Google)
+        if donnees.get("status") != "OK":
+            raise RuntimeError(donnees.get("error_message", donnees.get("status")))
+
+        element = donnees["rows"][0]["elements"][0]
+
+        # On vérifie aussi le status de l'élément lui-même
+        if element.get("status") != "OK":
+            raise RuntimeError(element.get("status"))
+
+        distance_metres = int(element["distance"]["value"])
+        duree_secondes = int(element["duration"]["value"])
+        duree = timedelta(seconds=duree_secondes)
+
+        return (distance_metres, duree)
+
+        #TP 4 si api marche pas ?
+        # if Configuration.get_instance().get_element("verbose"):
+        #     print(f"Attention: erreur API Distance Matrix ({erreur}), fallback Haversine", file=sys.stderr)
+
+        # r = 6371000  # rayon de la Terre en mètres
+        # lat1 = math.radians(origin[0])
+        # lon1 = math.radians(origin[1])
+        # lat2 = math.radians(destination[0])
+        # lon2 = math.radians(destination[1])
+        # dlat = lat2 - lat1
+        # dlon = lon2 - lon1
+        # a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+        # c = 2 * math.asin(math.sqrt(a))
+        # distance_metres = int(r * c)
+
+        # vitesse_m_par_s = 4.0 * 1000 / 3600  # 4 km/h en m/s
+        # duree_secondes = distance_metres / vitesse_m_par_s
+        # duree = timedelta(seconds=duree_secondes)
+
+        # return (distance_metres, duree)
 
 # TODO: Définir la classe Location désignant des objets contenant une latitude
 #       et une longitude.
 class Location:
+    # Attribut de classe partagé par toutes les Location
+    _api_adapter: MapsApiAdapter | None = None
 
     # TODO: Implémenter le constructeur et les getters.
     def __init__(self, latitude, longitude):
-        self.__latitude= float(latitude)
-        self.__longitude= float(longitude)
-        #_api_adapter: MapsApiAdapter | None -> pas dans le schéma (argument)
-        self.__api_adapter = None
+        self.__latitude = float(latitude)
+        self.__longitude = float(longitude)
 
     # TODO: Implémenter la méthode __str__ pour afficher une Location de la
     #       forme suivante (en limitant le nombre de décimales à 5).
     # Location [latitude: 48.85479, longitude: 2.34756]
     @override
     def __str__(self):
-        return f"Location (latitude : {self._latitude}, longitude : {self._longitude})."
+        return f"Location [latitude: {self.__latitude:.5f}, longitude: {self.__longitude:.5f}]"
 
     __repr__ = __str__
 
-    def _check_adapter_init(self):
-        if self.__api_adapter is None:
-            raise ValueError("API pas initialisé")
+    @classmethod
+    def _check_adapter_init(cls):
+        if cls._api_adapter is None:
+            raise ValueError("Spécifier un Adapter valide pour utiliser l'API du SIG. Utiliser Location.set_maps_adapter(...)")
 
-    def set_maps_adapter(self, MapsApiAdapter):
-        self.__api_adapter = float(MapsApiAdapter)
+    @classmethod
+    def set_maps_adapter(cls, adapter):
+        cls._api_adapter = adapter
 
     def get_latitude(self):
         return self.__latitude
@@ -154,82 +240,75 @@ class Location:
     def get_longitude(self):
         return self.__longitude
 
-    # TODO: Définir une méthode get_name(self) -> str qui retourne, en utilisant 
+    # TODO: Définir une méthode get_name(self) -> str qui retourne, en utilisant
     #       GoogleMapsApiAdapter qui envoie une requête API de reverse geocoding, le nom
     #       correspondant aux coordonnées contenues dans l'objet Location.
     # "Avenue de la Gare 46, 1003 Lausanne, Suisse" pour 46.517738, 6.632233
-    def get_name(): 
-        return "à faire après"
+    def get_name(self):
+        adapter = Location._api_adapter # GOOGLE APi
+        nom = adapter.get_place_name(self.__latitude, self.__longitude)
+
+        return nom
 
     # TODO: Implémenter la méthode get_travel_distance_and_time qui renvoie le
     #       couple (distance, temps) pour atteindre le lieu correspondant à un
     #       autre objet Location, en utilisant GoogleMapsApiAdapter qui envoie 
     #       requête HTTP urllib vers un service d'itinéraires.
     def get_travel_distance_and_time(self, other) -> tuple[int, timedelta]:
-        
-        # A FAIRE APRES AVEC API
-        
-        r: int = 6371  
+        # Source : Google Maps Distance Matrix API
+        # Doc officielle : https://developers.google.com/maps/documentation/distance-matrix/overview
+        adapter = Location._api_adapter
 
-        lat1 = math.radians(self.__latitude)
-        lon1 = math.radians(self.__longitude)
+        # demandé par la doc Google "origins" et "destinations"
+        origine = (self.__latitude, self.__longitude)
+        destination = (other.get_latitude(), other.get_longitude())
 
-        lat2 = math.radians(other.__latitude)
-        lon2 = math.radians(other.__longitude)
+        #mode "walking" 
+        resultat = adapter.get_travel_distance_and_time(origine, destination, "walking")
+        distance = resultat[0]
+        temps = resultat[1]
+        return (distance, temps)
 
-        dlat = lat2 - lat1
-        dlon = lon2 - lon1
-
-        a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
-        c = 2 * math.asin(math.sqrt(a))
-
-        distance = int(r * c)
-
-        vitesse_moyenne = 50  # km/h
-        temps_heures = distance / vitesse_moyenne
-        temps = timedelta(hours=temps_heures)
-
-        return distance, temps
-
-    # TP : à utiliser ? 
+    # TP : à utiliser ?
     def verif_lat(self):
-        if self._latitude <-90 or self._latitude >90:
-            raise ValueError("La réduction doit être comprise entre -90 et 90 !")
-    
+        if self.__latitude < -90 or self.__latitude > 90:
+            raise ValueError("La latitude doit être comprise entre -90 et 90 !")
+
     def verif_long(self):
-        if self._longitude <-180 or self._longitude >180:
-            raise ValueError("La réduction doit être comprise entre -180 et 180 !")
+        if self.__longitude < -180 or self.__longitude > 180:
+            raise ValueError("La longitude doit être comprise entre -180 et 180 !")
 
 
 # TODO: Définir la classe LocationSample désignant des objets contenant un
 #       datetime et un objet Location.
 class LocationSample:
     # TODO: Implémenter le constructeur.
-    def __init__(self, date, location, description=None):
+    def __init__(self, date, location, description=""):
+        # Vérification que location est bien une Location
+        if not isinstance(location, Location):
+            raise ValueError("location doit être une instance de Location !")
+        if not isinstance(date, datetime):
+            raise ValueError("date doit être une instance de datetime !")
+
         self.__date = date
         self.__location = location
         self.__description = description
-        
-        if not isinstance(date, int):
-            raise ValueError("La date doit être un entier !")
-        if not isinstance(location, Location):
-            raise ValueError("location doit être une instance de Location !")
 
     # TODO: Implémenter les getters.
-    def get_location(self) -> Location: 
+    def get_location(self) -> Location:
         return self.__location
 
     def get_date(self) -> datetime:
         return self.__date
 
-    def get_description(self) -> str: 
+    def get_description(self) -> str:
         return self.__description
 
     # TODO: Implémenter la méthode __str__ pour afficher une LocationSample de la façon suivante:
     #       LocationSample [datetime: 2024-04-03 12:25:00, location: Location [latitude: 48.85479, longitude: 2.34756]]
     @override
     def __str__(self):
-        return f"LocationSample [timestamp : {self._date}, location : {self._location}]"
+        return f"LocationSample [datetime: {self.__date}, location: {self.__location}]"
 
     __repr__ = __str__
 
@@ -294,29 +373,19 @@ class LocationProvider(ABC):
     #       un LocationSample et renvoie si un suspect a eu le temps de s'y
     #       rendre.
     def could_have_been_there(self, locationsample):
-        # On récupère le sample juste avant et juste après le crime
-        resultat = self.get_surrounding_temporal_location_samples(locationsample.get_date())
-        avant = resultat[0]
-        apres = resultat[1]
-
-        # On part du principe que le suspect a pu y être
+        avant, apres = self.get_surrounding_temporal_location_samples(locationsample.get_date())
         retour = True
 
-        # Vérification du trajet "avant -> lieu du crime"
         if avant is not None:
-            # Temps réellement écoulé entre le sample d'avant et le crime
             temps_reel = locationsample.get_date() - avant.get_date()
 
-            # Temps que l'API estime nécessaire pour faire le trajet
+            #API
             lieu_avant = avant.get_location()
             lieu_crime = locationsample.get_location()
             distance_et_temps = lieu_avant.get_travel_distance_and_time(lieu_crime)
             temps_api = distance_et_temps[1]
-
-            # Le PDF dit : temps minimal réel = moitié du temps renvoyé par l'API
             temps_minimal = temps_api / 2
 
-            # Si le suspect n'a pas eu assez de temps, il ne peut pas y être
             if temps_reel < temps_minimal:
                 retour = False
 
@@ -345,6 +414,9 @@ class LocationProvider(ABC):
         return f"{self.__class__.__name__} ({nbr_samples} location samples)"
 
     __repr__: Callable[[Self], str] = __str__
+
+    def __add__(self, other):
+        return CompositeLocationProvider(self, other)
 
     # Cette fonction est donnée, vous n'avez pas besoin de la modifier.
     def show_location_samples(
@@ -494,14 +566,26 @@ class ListLocationProvider(LocationProvider):
 
 # TODO: Créer une classe qui implémente le patron de conception Composite
 #       pour la classe LocationProvider.
-class CompositeLocationProvider:
-    ...
+class CompositeLocationProvider(LocationProvider):
     # La classe CompositeLocationProvider contient "deux" LocationProvider
     # TODO: Définir le constructeur.
+    def __init__(self, lp1: LocationProvider, lp2: LocationProvider):
+        self.__lp1 = lp1
+        self.__lp2 = lp2
 
     # TODO: Implémenter la méthode get_location_samples.
+    @override
+    def get_location_samples(self):
+        return sorted(self.__lp1.get_location_samples() + self.__lp2.get_location_samples())
 
     # TODO: Définir la méthode __str__.
+    @override
+    def __str__(self):
+        nbr_samples = len(self.get_location_samples())
+        ligne_principale = f"{self.__class__.__name__} ({nbr_samples} location samples)"
+        enfant1 = utils.indent(f"+\t{self.__lp1}")
+        enfant2 = utils.indent(f"+\t{self.__lp2}")
+        return f"{ligne_principale}\n{enfant1}\n{enfant2}"
 
 
 if __name__ == "__main__":
@@ -509,7 +593,7 @@ if __name__ == "__main__":
     # main (le résultat attendu est affiché ci-dessous).
     Configuration.get_instance().add_element("verbose", True)
     # TODO: mettre a jour la clé d'API Google
-    Location.set_maps_adapter(GoogleMapsApiAdapter("...")) # TODO: Ajouter votre clé Google pour tester
+    Location.set_maps_adapter(GoogleMapsApiAdapter("AIzaSyBGrCeG_x0e8YuFAIcosvJKREJuHR6Tdoo")) # TODO: Ajouter votre clé Google pour tester
 
     # Time zone
     zurich_tz = timezone(timedelta(hours=2))
