@@ -23,7 +23,7 @@ class Configuration:
         self.dico = {}
 
     @classmethod
-    def getinstance(configuration):
+    def get_instance(configuration):
         if configuration.instance == None:
             configuration.instance = Configuration()
         return configuration.instance

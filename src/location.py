@@ -126,7 +126,7 @@ class GoogleMapsApiAdapter(MapsApiAdapter):
 class Location:
 
     # TODO: Implémenter le constructeur et les getters.
-    def _init_(self, latitude, longitude):
+    def __init__(self, latitude, longitude):
         self.__latitude= float(latitude)
         self.__longitude= float(longitude)
         #_api_adapter: MapsApiAdapter | None -> pas dans le schéma (argument)
@@ -136,12 +136,12 @@ class Location:
     #       forme suivante (en limitant le nombre de décimales à 5).
     # Location [latitude: 48.85479, longitude: 2.34756]
     @override
-    def _str_(self):
+    def __str__(self):
         return f"Location (latitude : {self._latitude}, longitude : {self._longitude})."
 
     __repr__ = __str__
 
-    def _check_adapter_init():
+    def _check_adapter_init(self):
         if self.__api_adapter is None:
             raise ValueError("API pas initialisé")
 
@@ -205,9 +205,10 @@ class Location:
 #       datetime et un objet Location.
 class LocationSample:
     # TODO: Implémenter le constructeur.
-    def _init_(self, date, location):
+    def __init__(self, date, location, description=None):
         self.__date = date
         self.__location = location
+        self.__description = description
         
         if not isinstance(date, int):
             raise ValueError("La date doit être un entier !")
@@ -215,18 +216,19 @@ class LocationSample:
             raise ValueError("location doit être une instance de Location !")
 
     # TODO: Implémenter les getters.
-    def get_location() -> Location: 
+    def get_location(self) -> Location: 
         return self.__location
 
     def get_date(self) -> datetime:
-        return datetime.strptime(self.__date, "%d/%m/%Y-%H:%M:%S")
+        return self.__date
 
-    def get_description() -> str: ...
+    def get_description(self) -> str: 
+        return self.__description
 
     # TODO: Implémenter la méthode __str__ pour afficher une LocationSample de la façon suivante:
     #       LocationSample [datetime: 2024-04-03 12:25:00, location: Location [latitude: 48.85479, longitude: 2.34756]]
     @override
-    def _str_(self):
+    def __str__(self):
         return f"LocationSample [timestamp : {self._date}, location : {self._location}]"
 
     __repr__ = __str__
@@ -254,29 +256,93 @@ class LocationSample:
 # TODO: Définir la classe abstraite LocationProvider qui permet de produire une
 #       liste d'objets LocationSample.
 #       Utiliser la classe ABC et le décorateur @abstractmethod de Python.
-class LocationProvider:
+class LocationProvider(ABC):
     _app: QCoreApplication | None = None
     _web: QWebEngineView | None = None
 
     # TODO: Spécifier l'existence d'une méthode abstraite get_location_samples.
+    @abstractmethod
+    def get_location_samples(self):
+        pass
 
     # TODO: Implémenter la méthode print_location_samples en utilisant
     #       get_location_samples (renvoyant une liste de LocationSample), qui
     #       affiche dans le terminal une chaîne de caractères décrivant des objets LocationSamples.
+    def print_location_samples(self):
+        l = self.get_location_samples()
+        liste_str = []
+        for i in l:
+            liste_str.append(str(i))
+        print(liste_str)
 
     # TODO: Implémenter la méthode get_surrounding_temporal_location_samples qui
     #       prend en paramètre un datetime et renvoie les objets LocationSample
     #       (via get_location_samples) situés juste avant et après le datetime.
+    def get_surrounding_temporal_location_samples(self, date):
+        l = self.get_location_samples()
+        avant = None
+        apres = None
+        for i in l:
+            if i.get_date() < date:
+                avant = i
+            else:
+                apres = i
+                break
+        return (avant, apres)
 
     # TODO: Implémenter la méthode could_have_been_there qui prend en paramètre
     #       un LocationSample et renvoie si un suspect a eu le temps de s'y
     #       rendre.
+    def could_have_been_there(self, locationsample):
+        # On récupère le sample juste avant et juste après le crime
+        resultat = self.get_surrounding_temporal_location_samples(locationsample.get_date())
+        avant = resultat[0]
+        apres = resultat[1]
+
+        # On part du principe que le suspect a pu y être
+        retour = True
+
+        # Vérification du trajet "avant -> lieu du crime"
+        if avant is not None:
+            # Temps réellement écoulé entre le sample d'avant et le crime
+            temps_reel = locationsample.get_date() - avant.get_date()
+
+            # Temps que l'API estime nécessaire pour faire le trajet
+            lieu_avant = avant.get_location()
+            lieu_crime = locationsample.get_location()
+            distance_et_temps = lieu_avant.get_travel_distance_and_time(lieu_crime)
+            temps_api = distance_et_temps[1]
+
+            # Le PDF dit : temps minimal réel = moitié du temps renvoyé par l'API
+            temps_minimal = temps_api / 2
+
+            # Si le suspect n'a pas eu assez de temps, il ne peut pas y être
+            if temps_reel < temps_minimal:
+                retour = False
+
+        # Vérification du trajet "lieu du crime -> après"
+        if apres is not None:
+            temps_reel = apres.get_date() - locationsample.get_date()
+
+            lieu_crime = locationsample.get_location()
+            lieu_apres = apres.get_location()
+            distance_et_temps = lieu_crime.get_travel_distance_and_time(lieu_apres)
+            temps_api = distance_et_temps[1]
+
+            temps_minimal = temps_api / 2
+
+            if temps_reel < temps_minimal:
+                retour = False
+
+        return retour
 
     # TODO: Implémenter la méthode __str__ de sorte à afﬁcher un objet
     #       LocationProvider sous la forme suivante :
     #       LocationProvider (5 location samples)
     def __str__(self):
-        return ""
+        l = self.get_location_samples()
+        nbr_samples = len(l)
+        return f"{self.__class__.__name__} ({nbr_samples} location samples)"
 
     __repr__: Callable[[Self], str] = __str__
 
@@ -417,12 +483,13 @@ class LocationProvider:
 
 
 # TODO: Implémenter la classe ListLocationProvider.
-class ListLocationProvider:
-    ...
-    # TODO: Définir le constructeur contenant une liste de LocationSample.
+class ListLocationProvider(LocationProvider):
+    def __init__(self, liste):
+        self.__samples = sorted(deepcopy(liste))
 
-    # TODO: Implémenter la méthode get_location_samples qui renvoie la liste de
-    #       LocationSample.
+    @override
+    def get_location_samples(self):
+        return deepcopy(self.__samples)
 
 
 # TODO: Créer une classe qui implémente le patron de conception Composite
