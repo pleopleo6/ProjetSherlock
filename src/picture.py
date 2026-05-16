@@ -47,7 +47,7 @@ class PictureLocationProvider(ListLocationProvider):
         for fichier in self.__dir.iterdir():
             extension = fichier.suffix
 
-            if extension in self.fichier_accepte == False:
+            if extension not in self.fichier_accepte:
                 continue
 
             informations = PictureLocationProvider._extract_location_sample_from_picture(fichier)
