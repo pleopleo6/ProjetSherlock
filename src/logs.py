@@ -30,11 +30,9 @@ class LogsLocationProvider(ListLocationProvider):
 
         # TODO: parcourir les logs et filtrer ceux qui contiennent des appels
         #       GPS valides (coordonnées + temps).
-
-        # Regex simple :
-        # - groupe 1 : la date
-        # - groupe 2 : la latitude
-        # - groupe 3 : la longitude
+        # groupe 1 : date
+        # groupe 2 : latitude
+        # groupe 3 : longitude
         motif = re.compile(
             r"\[(.*?)\].*"
             r"coordinates:\s*\((-?\d+\.\d+),\s*(-?\d+\.\d+)\).*"
@@ -85,13 +83,11 @@ class LogsLocationProvider(ListLocationProvider):
             samples.append(sample)
 
         fichier_ouvert.close()
-
         super().__init__(samples)
 
     # TODO: Implémenter la méthode __str__ pour afficher les objets de la forme
     #       suivante.
     # LogsLocationProvider (source: ../data/logs/cblanco.log, 2 location samples)
-
     @override
     def __str__(self) -> str:
         nombre = len(self.get_location_samples())
