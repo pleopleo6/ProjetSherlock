@@ -20,6 +20,7 @@ except ImportError:
 # TODO: Définir la classe LogsLocationProvider qui désigne des objets
 #       LocationProvider obtenus à partir de logs.
 class LogsLocationProvider(ListLocationProvider):
+
     # TODO: Implémenter le constructeur où l'on définit en attribut le nom du
     #       fichier de log et où l'on construit la liste de samples.
     def __init__(self, fichier) -> None:
@@ -29,44 +30,62 @@ class LogsLocationProvider(ListLocationProvider):
 
         # TODO: parcourir les logs et filtrer ceux qui contiennent des appels
         #       GPS valides (coordonnées + temps).
-        # On écrit une regex qui capture timestamp + lat + lng et qui exige "source: GPS"
+
+        # Regex simple :
+        # - groupe 1 : la date
+        # - groupe 2 : la latitude
+        # - groupe 3 : la longitude
         motif = re.compile(
-            r"\[(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\.\d+\]"
-            r".*?coordinates:\s*\(['\"]?(-?\d+\.\d+)['\"]?,\s*"
-            r"['\"]?(-?\d+\.\d+)['\"]?\),\s*source:\s*GPS"
+            r"\[(.*?)\].*"
+            r"coordinates:\s*\((-?\d+\.\d+),\s*(-?\d+\.\d+)\).*"
+            r"source:\s*GPS"
         )
 
         samples = []
+
         fichier_ouvert = open(self.__file_name, "r")
+
         for ligne in fichier_ouvert:
             ligne = ligne.strip()
+
             resultat = motif.search(ligne)
+
             if resultat is None:
                 continue
 
             # TODO: filtrer le log et extraire les données temporelles, créer un
             #       datetime.
             timestamp_str = resultat.group(1)
+
+            # On enlève les millisecondes
+            timestamp_str = timestamp_str.split(".")[0]
+
             date = datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%S")
             date = date.replace(tzinfo=timezone(timedelta(hours=2)))
 
             # TODO: filtrer le log et extraire les données GPS.
-            lat = float(resultat.group(2))
-            lng = float(resultat.group(3))
+            latitude = float(resultat.group(2))
+            longitude = float(resultat.group(3))
 
             # TODO: retourner un triplet contenant le datetime, la latitude et la
             #       longitude.
-            triplet = (date, lat, lng)
+            triplet = (date, latitude, longitude)
 
             # TODO: Générer un sample pour chaque log valide et l'ajouter à une
             #       liste temporaire.
             #       Appeler ensuite super en passant cette liste temporaire pour
             #       définir l'attribut _samples
             lieu = Location(triplet[1], triplet[2])
-            sample = LocationSample(triplet[0], lieu, f"Log GPS ({self.__file_name})")
+            sample = LocationSample(
+                triplet[0],
+                lieu,
+                f"Log GPS ({self.__file_name})"
+            )
+
             samples.append(sample)
 
         fichier_ouvert.close()
+
         super().__init__(samples)
 
     # TODO: Implémenter la méthode __str__ pour afficher les objets de la forme
@@ -75,9 +94,8 @@ class LogsLocationProvider(ListLocationProvider):
 
     @override
     def __str__(self) -> str:
-        nb = len(self.get_location_samples())
-        return f"LogsLocationProvider (source: {self.__file_name}, {nb} location samples)"
-
+        nombre = len(self.get_location_samples())
+        return f"LogsLocationProvider (source: {self.__file_name}, {nombre} location samples)"
 
 if __name__ == "__main__":
     # Tester l'implémentation de cette classe avec les instructions de ce bloc
