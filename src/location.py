@@ -66,21 +66,21 @@ import json
 class MapsApiAdapter(ABC):
     """Adapter interface for map-related API operations."""
 
-    # TODO: Déclarer une méthode get_place_name
+    # TODO: Déclarer une méthode get_place_name 
     # Déclarer cette méthode comme abstraite et définir sa signature.
+    # Elle doit accepter en paramètre une latitude et une longitude (flottants)
+    # et retourner un nom de lieu lisible par un humain (str).
     @abstractmethod
     def get_place_name(self, latitude: float, longitude: float) -> str:
         pass
 
     # TODO: Déclarer une méthode get_travel_distance_and_time
     # Déclarer cette méthode comme abstraite et définir sa signature.
-    @abstractmethod
-    def get_travel_distance_and_time(
-        self,
-        origin: tuple[float, float],
-        destination: tuple[float, float],
-        mode: str = "walking",
-    ) -> tuple[int, timedelta]:
+    # Elle doit accepter en paramètre une origine et une destination (tuples de flottants)
+    # ainsi qu'un mode de transport (str, "walking" par défaut),
+    # et renvoyer un tuple contenant la distance en mètres (int)
+    # et la durée du trajet (timedelta).  @abstractmethod
+    def get_travel_distance_and_time(self, origin: tuple[float, float], destination: tuple[float, float], mode: str = "walking",) -> tuple[int, timedelta]:
         pass
 
 
@@ -119,27 +119,40 @@ class GoogleMapsApiAdapter(MapsApiAdapter):
         #   utiliser le deuxième résultat à la place.
         # - En cas d'erreur, renvoyer la chaîne "unknown"
         #   (et affichez un avertissement sur stderr si le mode verbose est activé).
-        # doc : https://developers.google.com/maps/documentation/geocoding/requests-reverse-geocoding
+        # aide sur l'api ici : https://developers.google.com/maps/documentation/geocoding/requests-reverse-geocoding
+
+        parametres = {
+            "latlng": f"{latitude},{longitude}",
+            "language": "fr-FR",
+        }
+
         try:
-            params = {
-                "latlng": f"{latitude},{longitude}",
-                "language": "fr-FR",
-            }
-            donnees = self._request_json("geocode", params)
+            donnees = self._request_json("geocode", parametres)
 
-            if donnees.get("status") != "OK":
-                raise RuntimeError(donnees.get("error_message", donnees.get("status")))
+            if donnees["status"] != "OK":
+                if Configuration.get_instance().get_element("verbose"):
+                    print(f"erreur API Geocoding ({donnees['status']})", file=sys.stderr)
+                return "unknown"
 
-            results = donnees["results"]
-            premier = results[0]
+            resultats = donnees["results"]
 
-            if premier["address_components"][0]["types"][0] == "plus_code":
-                premier = results[1]
-            return premier["formatted_address"]
+            if len(resultats) == 0:
+                return "unknown"
+
+            resultat = resultats[0]
+
+            premier_composant = resultat["address_components"][0]
+
+            if "plus_code" in premier_composant["types"]:
+                if len(resultats) < 2:
+                    return "unknown"
+                resultat = resultats[1]
+
+            return resultat["formatted_address"]
 
         except Exception as erreur:
             if Configuration.get_instance().get_element("verbose"):
-                print(f"Attention: erreur API Geocoding ({erreur})", file=sys.stderr)
+                print(f"erreur API Geocoding ({erreur})", file=sys.stderr)
             return "unknown"
 
     @override
@@ -158,7 +171,7 @@ class GoogleMapsApiAdapter(MapsApiAdapter):
         # - Renvoyer un tuple (distance, durée).
         # doc : https://developers.google.com/maps/documentation/distance-matrix/distance-matrix
        
-        params = {
+        parametres = {
             "origins": f"{origin[0]},{origin[1]}",
             "destinations": f"{destination[0]},{destination[1]}",
             "mode": mode,
@@ -166,23 +179,14 @@ class GoogleMapsApiAdapter(MapsApiAdapter):
             "language": "fr-FR",
         }
 
-        donnees = self._request_json("distancematrix", params)
-
-        # On vérifie le status global de la réponse (cf. doc Google)
-        if donnees.get("status") != "OK":
-            raise RuntimeError(donnees.get("error_message", donnees.get("status")))
-
+        donnees = self._request_json("distancematrix", parametres)
         element = donnees["rows"][0]["elements"][0]
+        distance_metres = element["distance"]["value"]
+        duree_secondes = element["duration"]["value"]
 
-        # On vérifie aussi le status de l'élément lui-même
-        if element.get("status") != "OK":
-            raise RuntimeError(element.get("status"))
-
-        distance_metres = int(element["distance"]["value"])
-        duree_secondes = int(element["duration"]["value"])
         duree = timedelta(seconds=duree_secondes)
 
-        return (distance_metres, duree)
+        return distance_metres, duree
 
         #TP 4 si api marche pas ?
         # if Configuration.get_instance().get_element("verbose"):
@@ -247,7 +251,6 @@ class Location:
     def get_name(self):
         adapter = Location._api_adapter # GOOGLE APi
         nom = adapter.get_place_name(self.__latitude, self.__longitude)
-
         return nom
 
     # TODO: Implémenter la méthode get_travel_distance_and_time qui renvoie le
@@ -373,37 +376,38 @@ class LocationProvider(ABC):
     #       un LocationSample et renvoie si un suspect a eu le temps de s'y
     #       rendre.
     def could_have_been_there(self, locationsample):
-        avant, apres = self.get_surrounding_temporal_location_samples(locationsample.get_date())
-        retour = True
+        date_crime = locationsample.get_date()
+        lieu_crime = locationsample.get_location()
+
+        avant, apres = self.get_surrounding_temporal_location_samples(date_crime)
+        possible = True
 
         if avant is not None:
-            temps_reel = locationsample.get_date() - avant.get_date()
-
-            #API
+            date_avant = avant.get_date()
             lieu_avant = avant.get_location()
-            lieu_crime = locationsample.get_location()
-            distance_et_temps = lieu_avant.get_travel_distance_and_time(lieu_crime)
-            temps_api = distance_et_temps[1]
-            temps_minimal = temps_api / 2
 
-            if temps_reel < temps_minimal:
-                retour = False
+            temps_disponible = date_crime - date_avant  # temps disponible entre le lieu avant et le crime
+            resultat = lieu_avant.get_travel_distance_and_time(lieu_crime)
+            temps_google = resultat[1]
 
-        # Vérification du trajet "lieu du crime -> après"
+            # /2 comme spécifié dans la consigne
+            temps_minimum = temps_google / 2
+            if temps_disponible < temps_minimum:
+                possible = False
+
         if apres is not None:
-            temps_reel = apres.get_date() - locationsample.get_date()
-
-            lieu_crime = locationsample.get_location()
+            date_apres = apres.get_date()
             lieu_apres = apres.get_location()
-            distance_et_temps = lieu_crime.get_travel_distance_and_time(lieu_apres)
-            temps_api = distance_et_temps[1]
 
-            temps_minimal = temps_api / 2
+            temps_disponible = date_apres - date_crime
+            resultat = lieu_crime.get_travel_distance_and_time(lieu_apres)
+            temps_google = resultat[1]
+            temps_minimum = temps_google / 2
 
-            if temps_reel < temps_minimal:
-                retour = False
+            if temps_disponible < temps_minimum:
+                possible = False
 
-        return retour
+        return possible
 
     # TODO: Implémenter la méthode __str__ de sorte à afﬁcher un objet
     #       LocationProvider sous la forme suivante :
