@@ -63,95 +63,108 @@ class Suspect:
     #       suspects.
     @staticmethod
     def create_suspects_from_xml_file(nom_fichier):
-        # Le dossier où se trouve le fichier XML (pour les chemins relatifs)
         dossier = Path(nom_fichier).parent
-
-        # On parse le fichier XML
         arbre = ET.parse(nom_fichier)
         racine = arbre.getroot()
 
         suspects = []
-
-        # Pour chaque <suspect> dans le XML
         for suspect_xml in racine.findall("suspect"):
-            nom = suspect_xml.find("name").text
-
-            # On construit la liste des LocationProvider de ce suspect
+            nom_xml = suspect_xml.find("name")
+            nom = nom_xml.text
             providers = []
-            for source in suspect_xml.find("sources").findall("source"):
+
+            sources_xml = suspect_xml.find("sources")
+            for source_xml in sources_xml.findall("source"):
                 try:
-                    type_source = source.find("type").text
+                    type_xml = source_xml.find("type")
+                    type_source = type_xml.text
 
                     if type_source == "Photographs":
-                        chemin = dossier.joinpath(source.find("dir").text)
-                        providers.append(PictureLocationProvider(str(chemin)))
-
+                        dossier_photos_xml = source_xml.find("dir")
+                        dossier_photos = dossier_photos_xml.text
+                        chemin = dossier.joinpath(dossier_photos)
+                        provider = PictureLocationProvider(str(chemin))
+                        providers.append(provider)
                     elif type_source == "Wi-Fi":
-                        chemin = dossier.joinpath(source.find("db").text)
-                        user = source.find("username").text
-                        providers.append(WifiLogsLocationProvider(str(chemin), user))
+                        db_xml = source_xml.find("db")
+                        username_xml = source_xml.find("username")
+                        db = db_xml.text
+                        username = username_xml.text
+                        chemin = dossier.joinpath(db)
+                        provider = WifiLogsLocationProvider(str(chemin), username)
+                        providers.append(provider)
 
                     elif type_source == "Logs":
-                        chemin = dossier.joinpath(source.find("file").text)
-                        providers.append(LogsLocationProvider(str(chemin)))
-
+                        fichier_logs_xml = source_xml.find("file")
+                        fichier_logs = fichier_logs_xml.text
+                        chemin = dossier.joinpath(fichier_logs)
+                        provider = LogsLocationProvider(str(chemin))
+                        providers.append(provider)
                 except Exception as erreur:
                     if Configuration.get_instance().get_element("verbose"):
-                        print(f"Attention: Une erreur est survenue pendant le traitement de la source ({erreur})", file=sys.stderr)
+                        print(f"erreur :  ({erreur})",file=sys.stderr)
+            
+            provider_final = providers[0]
+            for provider in providers[1:]:
+                provider_final = provider_final + provider
 
-            # On combine tous les providers en un seul (avec l'opérateur +)
-            lp = providers[0]
-            for p in providers[1:]:
-                lp = lp + p
-
-            suspects.append(Suspect(nom, lp))
-
+            suspect = Suspect(nom, provider_final)
+            suspects.append(suspect)
         return suspects
 
     # TODO: (Alternative) implémenter une méthode similaire pour les fichiers JSON
     @staticmethod
     def create_suspects_from_json_file(nom_fichier):
-        # Le dossier où se trouve le fichier JSON
         dossier = Path(nom_fichier).parent
-
-        # On lit le fichier JSON
-        with open(nom_fichier, "r") as f:
-            donnees = json.load(f)
+        fichier = open(nom_fichier, "r")
+        donnees = json.load(fichier)
+        fichier.close()
 
         suspects = []
 
-        # Pour chaque suspect dans le JSON
-        for suspect_dict in donnees["suspects"]:
-            nom = suspect_dict["name"]
+        suspects_json = donnees["suspects"]
 
+        for suspect_json in suspects_json:
+            nom = suspect_json["name"]
             providers = []
-            for source in suspect_dict["sources"]:
-                try:
-                    type_source = source["type"]
+            sources_json = suspect_json["sources"]
 
+            for source_json in sources_json:
+
+                try:
+                    type_source = source_json["type"]
                     if type_source == "Photographs":
-                        chemin = dossier.joinpath(source["dir"])
-                        providers.append(PictureLocationProvider(str(chemin)))
+                        dossier_photos = source_json["dir"]
+                        chemin = dossier.joinpath(dossier_photos)
+                        provider = PictureLocationProvider(str(chemin))
+                        providers.append(provider)
 
                     elif type_source == "Wi-Fi":
-                        chemin = dossier.joinpath(source["db"])
-                        providers.append(WifiLogsLocationProvider(str(chemin), source["username"]))
+                        db = source_json["db"]
+                        username = source_json["username"]
+
+                        chemin = dossier.joinpath(db)
+
+                        provider = WifiLogsLocationProvider(str(chemin), username)
+                        providers.append(provider)
 
                     elif type_source == "Logs":
-                        chemin = dossier.joinpath(source["file"])
-                        providers.append(LogsLocationProvider(str(chemin)))
+                        fichier_logs = source_json["file"]
+
+                        chemin = dossier.joinpath(fichier_logs)
+
+                        provider = LogsLocationProvider(str(chemin))
+                        providers.append(provider)
 
                 except Exception as erreur:
                     if Configuration.get_instance().get_element("verbose"):
-                        print(f"Attention: Une erreur est survenue pendant le traitement de la source ({erreur})", file=sys.stderr)
+                        print(f"erreur : ({erreur})",file=sys.stderr)
 
-            # On combine les providers
-            lp = providers[0]
-            for p in providers[1:]:
-                lp = lp + p
-
-            suspects.append(Suspect(nom, lp))
-
+            provider_final = providers[0]
+            for provider in providers[1:]:
+                provider_final = provider_final + provider
+            suspect = Suspect(nom, provider_final)
+            suspects.append(suspect)
         return suspects
 
 
