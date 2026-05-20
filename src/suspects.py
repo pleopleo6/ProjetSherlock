@@ -138,24 +138,17 @@ class Suspect:
                         chemin = dossier.joinpath(dossier_photos)
                         provider = PictureLocationProvider(str(chemin))
                         providers.append(provider)
-
                     elif type_source == "Wi-Fi":
                         db = source_json["db"]
                         username = source_json["username"]
-
                         chemin = dossier.joinpath(db)
-
                         provider = WifiLogsLocationProvider(str(chemin), username)
                         providers.append(provider)
-
                     elif type_source == "Logs":
                         fichier_logs = source_json["file"]
-
                         chemin = dossier.joinpath(fichier_logs)
-
                         provider = LogsLocationProvider(str(chemin))
                         providers.append(provider)
-
                 except Exception as erreur:
                     if Configuration.get_instance().get_element("verbose"):
                         print(f"erreur : ({erreur})",file=sys.stderr)

@@ -47,7 +47,7 @@ class PictureLocationProvider(ListLocationProvider):
         for fichier in self.__dir.iterdir():
             extension = fichier.suffix
 
-            if extension not in self.fichier_accepte:
+            if extension not in self.fichier_accepte: #verif des extemsions autorisées
                 continue
 
             informations = PictureLocationProvider._extract_location_sample_from_picture(fichier)
@@ -68,7 +68,6 @@ class PictureLocationProvider(ListLocationProvider):
                 if verbose:
                     nom_fichier = fichier.name
                     print(f"fichier ignoré :'{nom_fichier}'")
-
                 continue
 
             lieu = Location(lat, lng)
@@ -157,16 +156,13 @@ class PictureLocationProvider(ListLocationProvider):
             # timestamp.values  ressemble à [13, 52, 46]  (heure, minutes, secondes)
             if date is not None and timestamp is not None:
                 time = timestamp.values
-
                 heures = time[0]
                 minutes = time[1]
                 secondes = time[2]
 
                 date_complete = f"{date.values} {heures}:{minutes}:{secondes}"
                 t = datetime.strptime(date_complete, "%Y:%m:%d %H:%M:%S")
-
-                # La date EXIF est en UTC
-                t = t.replace(tzinfo=UTC)
+                t = t.replace(tzinfo=UTC) # remplacment en UTC
                
 
         return t, lat, lng

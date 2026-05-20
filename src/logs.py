@@ -38,18 +38,12 @@ class LogsLocationProvider(ListLocationProvider):
             r"coordinates:\s*\((-?\d+\.\d+),\s*(-?\d+\.\d+)\).*"
             r"source:\s*GPS"
         )
-
+        
         samples = []
-
         fichier_ouvert = open(self.__file_name, "r")
-
         for ligne in fichier_ouvert:
             ligne = ligne.strip()
-
             resultat = motif.search(ligne)
-
-            if resultat is None:
-                continue
 
             # TODO: filtrer le log et extraire les données temporelles, créer un
             #       datetime.
@@ -74,12 +68,7 @@ class LogsLocationProvider(ListLocationProvider):
             #       Appeler ensuite super en passant cette liste temporaire pour
             #       définir l'attribut _samples
             lieu = Location(triplet[1], triplet[2])
-            sample = LocationSample(
-                triplet[0],
-                lieu,
-                f"Log GPS ({self.__file_name})"
-            )
-
+            sample = LocationSample(triplet[0],lieu,f"log GPS ({self.__file_name})")
             samples.append(sample)
 
         fichier_ouvert.close()

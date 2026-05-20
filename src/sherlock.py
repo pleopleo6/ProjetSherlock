@@ -76,11 +76,8 @@ if __name__ == "__main__":
     # TODO: Stocker les paramètres importants dans un objet Configuration
     #       accessible depuis tous les modules du programme.
     configurationClasse = Configuration.get_instance()
-
     formatDate = "%d/%m/%Y-%H:%M:%S"
-    date_crime = datetime.strptime(args.date, formatDate) #strptime (enoncé)
-
-    # On stocke chaque paramètre avec une clef simple
+    date_crime = datetime.strptime(args.date, formatDate) #enoncé à vérifier si ça marche
     configurationClasse.add_element("verbose", args.verbose)
     configurationClasse.add_element("suspects", args.suspects)
     configurationClasse.add_element("geo_api_key", args.geo_api_key)
@@ -95,10 +92,9 @@ if __name__ == "__main__":
         from location import GoogleMapsApiAdapter
     Location.set_maps_adapter(GoogleMapsApiAdapter(args.geo_api_key))
     crime_location = Location(args.latitude, args.longitude)
-    print(
-        f"Investigation liée au crime du {date_crime.strftime('%d/%m/%Y à %H:%M:%S')} @ "
-        f"{crime_location.get_name()} ({crime_location.get_latitude():.5f},{crime_location.get_longitude():.5f})"
-    )
+    
+    #print checker la strcture du print pour qu'il soit indentique à la consigne
+    print(f"Investigation liée au crime du {date_crime.strftime('%d/%m/%Y à %H:%M:%S')} @ "f"{crime_location.get_name()} ({crime_location.get_latitude():.5f},{crime_location.get_longitude():.5f})")
 
     # TODO: Lire le fichier suspect, l'analyser, construire les objets Suspect
     #       correspondants et les stocker dans une liste. Utiliser les méthodes

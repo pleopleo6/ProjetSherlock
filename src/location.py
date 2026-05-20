@@ -99,15 +99,13 @@ class GoogleMapsApiAdapter(MapsApiAdapter):
         self._api_key = api_key
 
     def _request_json(self, endpoint: str, params: dict[str, str]) -> dict:
-        params_complets = dict(params)
-        params_complets["key"] = self._api_key
-        url = f"{self._BASE_URL}/{endpoint}/json?{urlencode(params_complets)}"
-
+        params_requete = params.copy()  # pas modifier dico original
+        params_requete["key"] = self._api_key
+        params_url = urlencode(params_requete)
+        url = self._BASE_URL + "/" + endpoint + "/json?" + params_url
         reponse = urlopen(url, context=SSL_CONTEXT)
-
         contenu = reponse.read().decode("utf-8")
-        donnees = json.loads(contenu)
-        return donnees
+        return json.loads(contenu)
 
     @override
     def get_place_name(self, latitude: float, longitude: float) -> str:
@@ -171,7 +169,7 @@ class GoogleMapsApiAdapter(MapsApiAdapter):
         # - Renvoyer un tuple (distance, durée).
         # doc : https://developers.google.com/maps/documentation/distance-matrix/distance-matrix
        
-        parametres = {
+        parametres={
             "origins": f"{origin[0]},{origin[1]}",
             "destinations": f"{destination[0]},{destination[1]}",
             "mode": mode,
@@ -230,13 +228,13 @@ class Location:
     __repr__ = __str__
 
     @classmethod
-    def _check_adapter_init(cls):
-        if cls._api_adapter is None:
+    def _check_adapter_init(location):
+        if location._api_adapter is None:
             raise ValueError("Spécifier un Adapter valide pour utiliser l'API du SIG. Utiliser Location.set_maps_adapter(...)")
 
     @classmethod
-    def set_maps_adapter(cls, adapter):
-        cls._api_adapter = adapter
+    def set_maps_adapter(location, adapter):
+        location._api_adapter = adapter
 
     def get_latitude(self):
         return self.__latitude
@@ -287,7 +285,6 @@ class Location:
 class LocationSample:
     # TODO: Implémenter le constructeur.
     def __init__(self, date, location, description=""):
-        # Vérification que location est bien une Location
         if not isinstance(location, Location):
             raise ValueError("location doit être une instance de Location !")
         if not isinstance(date, datetime):
@@ -315,7 +312,7 @@ class LocationSample:
 
     __repr__ = __str__
 
-    # TODO: Définir les opérateurs de comparaison. TOUS ? 
+    # TODO: Définir les opérateurs de comparaison. TOUS ???
     def __lt__(self, autre):
         return self.__date < autre.__date
 
@@ -385,25 +382,20 @@ class LocationProvider(ABC):
         if avant is not None:
             date_avant = avant.get_date()
             lieu_avant = avant.get_location()
-
             temps_disponible = date_crime - date_avant  # temps disponible entre le lieu avant et le crime
             resultat = lieu_avant.get_travel_distance_and_time(lieu_crime)
             temps_google = resultat[1]
-
-            # /2 comme spécifié dans la consigne
-            temps_minimum = temps_google / 2
+            temps_minimum = temps_google / 2 # /2 comme spécifié dans la consigne
             if temps_disponible < temps_minimum:
                 possible = False
 
         if apres is not None:
             date_apres = apres.get_date()
             lieu_apres = apres.get_location()
-
             temps_disponible = date_apres - date_crime
             resultat = lieu_crime.get_travel_distance_and_time(lieu_apres)
             temps_google = resultat[1]
             temps_minimum = temps_google / 2
-
             if temps_disponible < temps_minimum:
                 possible = False
 
