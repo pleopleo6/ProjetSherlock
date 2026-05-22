@@ -45,6 +45,10 @@ class LogsLocationProvider(ListLocationProvider):
             ligne = ligne.strip()
             resultat = motif.search(ligne)
 
+            # Si la ligne ne correspond pas, on l'ignore
+            if resultat is None:
+                continue
+
             # TODO: filtrer le log et extraire les données temporelles, créer un
             #       datetime.
             timestamp_str = resultat.group(1)

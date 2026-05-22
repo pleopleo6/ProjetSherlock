@@ -75,44 +75,73 @@ if __name__ == "__main__":
 
     # TODO: Stocker les paramètres importants dans un objet Configuration
     #       accessible depuis tous les modules du programme.
-    configurationClasse = Configuration.get_instance()
-    formatDate = "%d/%m/%Y-%H:%M:%S"
-    date_crime = datetime.strptime(args.date, formatDate) #enoncé à vérifier si ça marche
-    configurationClasse.add_element("verbose", args.verbose)
-    configurationClasse.add_element("suspects", args.suspects)
-    configurationClasse.add_element("geo_api_key", args.geo_api_key)
-    configurationClasse.add_element("latitude", args.latitude)
-    configurationClasse.add_element("longitude", args.longitude)
-    configurationClasse.add_element("crime_date", date_crime)
+    # on récupère l'instance unique de Configuration (singleton)
+    configuration = Configuration.get_instance()
+
+    # convertit date
+    format_date = "%d/%m/%Y-%H:%M:%S"
+    date_crime = datetime.strptime(args.date, format_date)
+
+    configuration.add_element("verbose", args.verbose)
+    configuration.add_element("suspects", args.suspects)
+    configuration.add_element("geo_api_key", args.geo_api_key)
+    configuration.add_element("latitude", args.latitude)
+    configuration.add_element("longitude", args.longitude)
+    configuration.add_element("crime_date", date_crime)
 
     # TODO: Afficher le message d'accueil du logiciel.
+    # on importe ici GoogleMapsApiAdapter (depuis location)
     try:
         from src.location import GoogleMapsApiAdapter
     except ImportError:
         from location import GoogleMapsApiAdapter
-    Location.set_maps_adapter(GoogleMapsApiAdapter(args.geo_api_key))
-    crime_location = Location(args.latitude, args.longitude)
-    
-    #print checker la strcture du print pour qu'il soit indentique à la consigne
-    print(f"Investigation liée au crime du {date_crime.strftime('%d/%m/%Y à %H:%M:%S')} @ "f"{crime_location.get_name()} ({crime_location.get_latitude():.5f},{crime_location.get_longitude():.5f})")
+
+    cle_api = args.geo_api_key
+    adapter_google = GoogleMapsApiAdapter(cle_api)
+    Location.set_maps_adapter(adapter_google)
+    lieu_crime = Location(args.latitude, args.longitude)
+    date_formatee = date_crime.strftime("%d/%m/%Y à %H:%M:%S")
+    nom_lieu = lieu_crime.get_name()
+    lat_arrondie = round(lieu_crime.get_latitude(), 5)
+    lng_arrondie = round(lieu_crime.get_longitude(), 5)
+
+    message_accueil = f"Investigation liée au crime du {date_formatee} @ {nom_lieu} ({lat_arrondie},{lng_arrondie})"
+    print(message_accueil)
 
     # TODO: Lire le fichier suspect, l'analyser, construire les objets Suspect
     #       correspondants et les stocker dans une liste. Utiliser les méthodes
     #       createObjectFromXMLFile() / createObjectFromJSONFile().
     # Créer un objet Location décrivant le lieu du crime à partir de ses coordonnées (obtenues depuis la ligne de commande)
-    if args.suspects.endswith(".json"):
-        suspects = Suspect.create_suspects_from_json_file(args.suspects)
+    fichier_suspects = args.suspects
+    if fichier_suspects.endswith(".json"):
+        liste_suspects = Suspect.create_suspects_from_json_file(fichier_suspects)
     else:
-        suspects = Suspect.create_suspects_from_xml_file(args.suspects)
-    crime_sample = LocationSample(
-        date_crime.replace(tzinfo=timezone(timedelta(hours=2))),
-        crime_location,
-        "Lieu du crime",
-    )
+        liste_suspects = Suspect.create_suspects_from_xml_file(fichier_suspects)
+
+    #fuseau horaire UTC+2
+    fuseau_horaire = timezone(timedelta(hours=2))
+    date_crime_avec_tz = date_crime.replace(tzinfo=fuseau_horaire)
+    sample_crime = LocationSample(date_crime_avec_tz, lieu_crime, "Lieu du crime")
 
     # TODO: Pour chaque suspect, déterminer s'il a pu se rendre et repartir du
     #       lieu du crime.
     print("\nSuspects plausibles :")
-    for s in suspects:
-        if s.get_location_provider().could_have_been_there(crime_sample):
-            print(f" - {s.get_name()}")
+    suspects_plausibles = []
+
+    for suspect in liste_suspects:
+        try:
+            provider = suspect.get_location_provider()
+            a_pu_y_etre = provider.could_have_been_there(sample_crime)
+
+            if a_pu_y_etre:
+                nom_suspect = suspect.get_name()
+                print(f" - {nom_suspect}")
+                suspects_plausibles.append(suspect)
+        except Exception as erreur:
+            print(f"Errreur : {erreur}")
+
+    # on affiche la carte pour chaque suspect plausible
+    for suspect in suspects_plausibles:
+        provider = suspect.get_location_provider()
+        nom_suspect = suspect.get_name()
+        provider.show_location_samples(marker=sample_crime, show_path=True, title=nom_suspect)
