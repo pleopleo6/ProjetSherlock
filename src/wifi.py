@@ -27,17 +27,10 @@ class WifiLogsLocationProvider(ListLocationProvider):
         self.__db = path
         self.__username = username
 
-        # 1) On se connecte à la base SQLite
         connexion = sqlite3.connect(self.__db)
-
-        # 2) On utilise dict_factory pour récupérer les résultats sous forme de dict
         connexion.row_factory = WifiLogsLocationProvider.dict_factory
-
-        # 3) On crée un curseur pour exécuter la requête
         curseur = connexion.cursor()
 
-        # 4) On écrit la requête SQL avec deux JOIN et un WHERE
-        #    On trie directement par timestamp pour avoir l'ordre chronologique
         requete = """
             SELECT location_samples.timestamp, hotspots.latitude, hotspots.longitude
             FROM location_samples
@@ -47,29 +40,17 @@ class WifiLogsLocationProvider(ListLocationProvider):
             ORDER BY location_samples.timestamp
         """
 
-        # 5) On exécute la requête avec le nom d'utilisateur comme paramètre
         curseur.execute(requete, (self.__username,))
-
-        # 6) On récupère tous les résultats
         resultats = curseur.fetchall()
 
-        # 7) On crée une liste de LocationSample
         samples = []
         for ligne in resultats:
-            # Le timestamp est un entier (epoch Unix), on le convertit en datetime UTC+2
             date = datetime.fromtimestamp(ligne["timestamp"], tz=timezone(timedelta(hours=2)))
-
-            # On crée la Location à partir des coordonnées du hotspot
             lieu = Location(ligne["latitude"], ligne["longitude"])
-
-            # On crée le LocationSample
             sample = LocationSample(date, lieu, f"Wi-Fi ({self.__username})")
             samples.append(sample)
 
-        # 8) On ferme la connexion
         connexion.close()
-
-        # 9) On passe la liste au parent (ListLocationProvider)
         super().__init__(samples)
 
     # TODO: Redéfinir la méthode __str__.

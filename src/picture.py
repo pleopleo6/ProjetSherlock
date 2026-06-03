@@ -162,7 +162,7 @@ class PictureLocationProvider(ListLocationProvider):
 
                 date_complete = f"{date.values} {heures}:{minutes}:{secondes}"
                 t = datetime.strptime(date_complete, "%Y:%m:%d %H:%M:%S")
-                t = t.replace(tzinfo=UTC) # remplacment en UTC
+                t = t.replace(tzinfo=UTC) #remplacment en UTC
                
 
         return t, lat, lng

@@ -44,17 +44,13 @@ class LogsLocationProvider(ListLocationProvider):
         for ligne in fichier_ouvert:
             ligne = ligne.strip()
             resultat = motif.search(ligne)
-
-            # Si la ligne ne correspond pas, on l'ignore
             if resultat is None:
                 continue
 
             # TODO: filtrer le log et extraire les données temporelles, créer un
             #       datetime.
             timestamp_str = resultat.group(1)
-
-            # On enlève les millisecondes
-            timestamp_str = timestamp_str.split(".")[0]
+            timestamp_str = timestamp_str.split(".")[0]#no millisecondes
 
             date = datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%S")
             date = date.replace(tzinfo=timezone(timedelta(hours=2)))

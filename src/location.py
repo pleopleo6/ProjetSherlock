@@ -72,7 +72,7 @@ class MapsApiAdapter(ABC):
     # et retourner un nom de lieu lisible par un humain (str).
     @abstractmethod
     def get_place_name(self, latitude: float, longitude: float) -> str:
-        pass
+        pass #implementee plus loin dans le fichier
 
     # TODO: Déclarer une méthode get_travel_distance_and_time
     # Déclarer cette méthode comme abstraite et définir sa signature.
@@ -81,7 +81,7 @@ class MapsApiAdapter(ABC):
     # et renvoyer un tuple contenant la distance en mètres (int)
     # et la durée du trajet (timedelta).  @abstractmethod
     def get_travel_distance_and_time(self, origin: tuple[float, float], destination: tuple[float, float], mode: str = "walking",) -> tuple[int, timedelta]:
-        pass
+        pass #implementee plus loin dans le fichier
 
 
 class GoogleMapsApiAdapter(MapsApiAdapter):
@@ -227,7 +227,7 @@ class Location:
 
     __repr__ = __str__
 
-    @classmethod
+    @classmethod #Section X verif config api ?
     def _check_adapter_init(location):
         if location._api_adapter is None:
             raise ValueError("Spécifier un Adapter valide pour utiliser l'API du SIG. Utiliser Location.set_maps_adapter(...)")
@@ -274,7 +274,8 @@ class Location:
     def verif_lat(self):
         if self.__latitude < -90 or self.__latitude > 90:
             raise ValueError("La latitude doit être comprise entre -90 et 90 !")
-
+    
+    # TP : à utiliser ?
     def verif_long(self):
         if self.__longitude < -180 or self.__longitude > 180:
             raise ValueError("La longitude doit être comprise entre -180 et 180 !")
